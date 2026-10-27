@@ -1,0 +1,8 @@
+# Only the scripts, docs and the armour's baked textures are versioned. The .blend files and renders are made again by
+# the scripts (items_build.build() / armour_drop.py <item>).
+/blender/
+/renders/
+
+__pycache__/
+*.pyc
+*.blend1
