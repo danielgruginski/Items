@@ -36,7 +36,7 @@ MATS = {
     "Stem": ((0.32, 0.22, 0.12), 0.0, 0.8),
     "Tint": ((0.8, 0.2, 0.2), 0.0, 0.25),        # the item's own colour in Unity (a potion, a scroll's seal, a gem)
     "Glass": ((0.75, 0.85, 0.85), 0.0, 0.1), "Cork": ((0.55, 0.40, 0.25), 0.0, 0.9),
-    "Egg": ((0.92, 0.86, 0.74), 0.0, 0.5), "Honey": ((0.85, 0.55, 0.10), 0.0, 0.2), "Onion": ((0.72, 0.48, 0.22), 0.0, 0.5),
+    "Egg": ((0.92, 0.86, 0.74), 0.0, 0.5), "Honey": ((0.85, 0.55, 0.10), 0.0, 0.2), "Glaze": ((0.42, 0.2, 0.09), 0.0, 0.25), "Onion": ((0.72, 0.48, 0.22), 0.0, 0.5),
     "Chitin": ((0.16, 0.14, 0.10), 0.0, 0.3), "RatTail": ((0.78, 0.55, 0.52), 0.0, 0.6), "Plague": ((0.55, 0.52, 0.22), 0.0, 0.4),
     "CheesePaste": ((0.97, 0.88, 0.55), 0.0, 0.6), "CheeseHole": ((0.72, 0.58, 0.28), 0.0, 0.9),
     "Ink": ((0.06, 0.04, 0.03), 0.0, 0.7), "Scorch": ((0.42, 0.26, 0.12), 0.0, 0.9), "Char": ((0.05, 0.04, 0.035), 0.0, 0.95),
@@ -737,14 +737,24 @@ def eggs(coll):
 
 
 def honey(coll):
-    b = Builder("honey")
-    b.add(lathe([(0.04, 0.0), (0.055, 0.03), (0.058, 0.07), (0.045, 0.1), (0.04, 0.105), (0.045, 0.115), (0.04, 0.12)], 22), "VK_Clay")
-    b.add(lathe([(0.0, 0.112), (0.05, 0.112), (0.055, 0.125), (0.035, 0.14), (0.0, 0.142)], 22), "VK_Burlap")   # the cloth over it
-    b.add(torus(0.043, 0.003, seg=20, ring=5), "Cord", Matrix.Translation(Vector((0, 0, 0.11))))
-    for a in (0.3, 2.0, 4.1):                                       # honey run down from under the cloth
-        x, y = math.cos(a) * 0.046, math.sin(a) * 0.046
-        b.add(tube([Vector((x, y, 0.105)), Vector((x * 1.15, y * 1.15, 0.085)), Vector((x * 1.2, y * 1.2, 0.06))], 0.006, ring=6, closed=False,
-                   taper=lambda t: 1 - 0.4 * t), "Honey")
+    """a honey pot (2026-10-27, Daniel: "the honey is weird"; the first, a clay jar under a burlap cap, read as a sack with
+    a crust): a glazed pot, open, full to the neck, a wooden dipper standing in it, honey run over the lip"""
+    b = Builder("honey")                                            # (about a potion's budget: 16 sides, no inside under the honey)
+    pot = [(0.0, 0.0), (0.04, 0.0), (0.055, 0.022), (0.06, 0.058), (0.053, 0.09), (0.044, 0.106),   # outside, up
+           (0.05, 0.114), (0.05, 0.119), (0.043, 0.119),                                          # the lip
+           (0.039, 0.108), (0.041, 0.099), (0.0, 0.099)]                                          # inside, down to the honey
+    b.add(lathe(pot, 16), "Glaze")
+    b.add(lathe([(0.0425, 0.0995), (0.0425, 0.1), (0.0, 0.1015)], 16), "Honey")   # full to the neck
+    tilt = Matrix.Translation(Vector((0.004, 0.0, 0.1))) @ Matrix.Rotation(math.radians(24), 4, "Y")   # the dipper, standing in it
+    b.add(cyl(0.0035, 0.115, seg=6), "Oak", tilt @ Matrix.Translation(Vector((0, 0, 0.045))))
+    for k in range(3):                                              # the grooved head, half sunk, coated
+        b.add(cyl(0.0105 - 0.0015 * abs(k - 1), 0.005, seg=8), "Honey", tilt @ Matrix.Translation(Vector((0, 0, -0.002 + k * 0.0065))))
+    for a, z_end in ((4.2, 0.064), (0.6, 0.08)):                    # honey run over the lip (front -Y, back)
+        c, s = math.cos(a), math.sin(a)
+        pts = [Vector((c * r, s * r, z)) for r, z in ((0.047, 0.1195), (0.0515, 0.116), (0.047, 0.106), (0.051, 0.096),
+                                                       (0.057, 0.082), (0.0605, z_end))]
+        pts = [p for p in pts if p.z >= z_end]
+        b.add(tube(pts, 0.0035, ring=5, closed=False, taper=lambda t: 1 + 0.35 * t * t), "Honey")   # gathering to a drop
     return b.finish(coll)
 
 

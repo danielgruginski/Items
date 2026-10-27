@@ -76,7 +76,7 @@ namespace MedievalGame.EditorTools
             ["Stem"] = (new Color(0.36f, 0.25f, 0.14f), 0f, 0.2f),
             ["Tint"] = (new Color(0.8f, 0.2f, 0.2f), 0f, 0.8f), ["Glass"] = (new Color(0.78f, 0.86f, 0.86f), 0.1f, 0.85f),
             ["Cork"] = (new Color(0.58f, 0.42f, 0.26f), 0f, 0.1f), ["Egg"] = (new Color(0.93f, 0.87f, 0.75f), 0f, 0.35f),
-            ["Honey"] = (new Color(0.88f, 0.56f, 0.1f), 0f, 0.8f), ["Onion"] = (new Color(0.76f, 0.5f, 0.24f), 0f, 0.45f),
+            ["Honey"] = (new Color(0.88f, 0.56f, 0.1f), 0f, 0.8f), ["Glaze"] = (new Color(0.42f, 0.2f, 0.09f), 0f, 0.75f), ["Onion"] = (new Color(0.76f, 0.5f, 0.24f), 0f, 0.45f),
             ["Chitin"] = (new Color(0.3f, 0.27f, 0.16f), 0.2f, 0.8f), ["ChitinEdge"] = (new Color(0.55f, 0.36f, 0.13f), 0.05f, 0.6f),
             ["StemGreen"] = (new Color(0.26f, 0.38f, 0.13f), 0f, 0.3f), ["Ghost"] = (new Color(0.94f, 0.94f, 0.96f), 0f, 0.7f),
             ["GhostTip"] = (new Color(0.2f, 0.17f, 0.2f), 0f, 0.5f), ["Husk"] = (new Color(0.38f, 0.25f, 0.13f), 0f, 0.15f),
@@ -527,6 +527,7 @@ namespace MedievalGame.EditorTools
                 cam.Render();
                 RenderTexture.active = rt;
                 tex.ReadPixels(new Rect(0, 0, Size, Size), 0, 0);
+                if (d.slot == EquipSlot.Hands) KeepBiggestColumns(tex);   // (2026-10-27: the right glove's fingers showed at the left border)
                 tex.Apply();
                 RenderTexture.active = null;
                 string path = $"{Dir}/{d.Id}.png";
@@ -534,6 +535,30 @@ namespace MedievalGame.EditorTools
                 made.Add((path, new List<ItemDefinition> { d }));
             }
             Object.DestroyImmediate(h);
+        }
+
+        /// <summary>a glove's shot holds a corner of the other glove too: the columns with anything in them, in runs split by
+        /// empty columns; every run but the one with the most pixels cleared (the skinned gloves' bounds are the whole
+        /// body's, so the pair can't be split in world space)</summary>
+        static void KeepBiggestColumns(Texture2D tex)
+        {
+            var px = tex.GetPixels32();
+            var count = new int[Size];
+            for (int i = 0; i < px.Length; i++) if (px[i].a > 0) count[i % Size]++;
+            int bestStart = 0, bestEnd = -1, best = -1;
+            for (int x = 0; x < Size;)
+            {
+                if (count[x] == 0) { x++; continue; }
+                int start = x, sum = 0;
+                while (x < Size && count[x] > 0) sum += count[x++];
+                if (sum > best) { best = sum; bestStart = start; bestEnd = x - 1; }
+            }
+            for (int i = 0; i < px.Length; i++)
+            {
+                int x = i % Size;
+                if (x < bestStart || x > bestEnd) px[i] = new Color32(0, 0, 0, 0);
+            }
+            tex.SetPixels32(px);
         }
 
         /// <summary>what a hand or foot item wears for its icon: its look, and under a cuff or a gauntlet the glove itself
